@@ -74,7 +74,6 @@ func NewV8TimeBased(random io.Reader) (UUID, error) {
 	timestamp := uint64(time.Now().UnixNano())
 
 	timeMu.Lock()
-	defer timeMu.Unlock()
 
 	if timestamp == lastTimestamp {
 		sequence++
@@ -82,6 +81,8 @@ func NewV8TimeBased(random io.Reader) (UUID, error) {
 		lastTimestamp = timestamp
 		sequence = 0
 	}
+
+	defer timeMu.Unlock()
 
 	// Encode timestamp into custom_a (48 bits)
 	binary.BigEndian.PutUint64(uuid[:8], timestamp)
@@ -104,47 +105,4 @@ func NewV8TimeBased(random io.Reader) (UUID, error) {
 	}
 
 	return uuid, nil
-}
-
-// makeV8 generates a version 8 UUID using user-provided or random data for custom_a, custom_b, and custom_c.
-func makeV8(uuid []byte, customA, customB, customC []byte) {
-	/*
-		Layout of UUIDv8:
-		 0                   1                   2                   3
-		 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
-		+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-		|                           custom_a                            |
-		+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-		|          custom_a             |  ver  |       custom_b        |
-		+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-		|var|                       custom_c                            |
-		+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-		|                           custom_c                            |
-		+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-	*/
-
-	_ = uuid[15] // Bounds check
-
-	// Fill custom_a (48 bits)
-	if customA != nil {
-		copy(uuid[0:6], customA)
-	} else {
-		randomBits(uuid[0:6])
-	}
-
-	// Set version and fill custom_b (12 bits)
-	uuid[6] = (uuid[6] & 0x0F) | 0x80
-	if customB != nil {
-		copy(uuid[6:8], customB)
-	} else {
-		randomBits(uuid[6:8])
-	}
-	uuid[8] = (uuid[8] & 0x3F) | 0x80
-
-	// Fill custom_c (62 bits)
-	if customC != nil {
-		copy(uuid[8:], customC)
-	} else {
-		randomBits(uuid[8:])
-	}
 }
