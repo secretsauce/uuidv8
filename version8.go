@@ -82,6 +82,8 @@ func NewV8TimeBased(random io.Reader) (UUID, error) {
 		sequence = 0
 	}
 
+	timeMu.Unlock()
+
 	// Encode timestamp into custom_a (48 bits)
 	binary.BigEndian.PutUint64(uuid[:8], timestamp)
 	copy(uuid[:6], uuid[2:8])
